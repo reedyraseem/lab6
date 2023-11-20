@@ -1,0 +1,69 @@
+﻿@page "/borrowbook"
+@inject IJSRuntime JSRuntime
+@using BlazorApp7.Data
+@using BlazorApp7.Services
+@inject IUserService UserService
+@inject IBorrowService BorrowService
+@inject IBookService BookService
+@inject IBorrowService BorrowService
+
+
+
+<h3>Borrow a Book</h3>
+
+<div>
+    <label for="bookISBN">Enter Book ISBN to Borrow:</label>
+    <input type="text" id="bookISBN" @bind="bookISBN" />
+    <button @onclick="Borrow">Borrow Book</button>
+</div>
+
+<div>
+    <label for="userName">Enter User Name:</label>
+    <input type="text" id="userName" @bind="userName" />
+</div>
+
+<div>
+    <label for="userEmail">Enter User Email:</label>
+    <input type="text" id="userEmail" @bind="userEmail" />
+</div>
+
+<p>@resultMessage</p>
+
+@code {
+    private string bookISBN;
+    private string userName;
+    private string userEmail;
+    private string resultMessage;
+
+    // Declare borrowedBooks and availableBooks here
+    private Dictionary<User, List<Book>> borrowedBooks = new Dictionary<User, List<Book>>();
+    private List<Book> availableBooks = new List<Book>();
+
+    private void Borrow()
+    {
+        // Find the book by ISBN
+        Book book = BookService.GetBookByISBN(bookISBN);
+
+        if (book != null)
+        {
+            // Find the user by name and email
+            User user = UserService.GetUserByNameAndEmail(userName, userEmail);
+
+            if (user != null)
+            {
+                // Borrow the book using BorrowService
+                BorrowService.BorrowBook(book.ISBN, user.Id, borrowedBooks, availableBooks);
+
+                resultMessage = $"Book '{book.Title}' borrowed successfully by {user.Name}.";
+            }
+            else
+            {
+                resultMessage = $"User with name '{userName}' and email '{userEmail}' not found.";
+            }
+        }
+        else
+        {
+            resultMessage = $"Book with ISBN '{bookISBN}' not found.";
+        }
+    }
+}

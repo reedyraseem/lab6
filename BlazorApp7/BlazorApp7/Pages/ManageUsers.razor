@@ -1,0 +1,138 @@
+﻿@page "/ManageUsers"
+@using BlazorApp7.Data
+@using BlazorApp7.Services
+@inject IJSRuntime JSRuntime
+
+<h3>Manage Users</h3>
+
+<div>
+    <button class="btn btn-primary" @onclick="AddUser">Add User</button>
+</div>
+
+@if (users.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.Id</td>
+                    <td>@user.Name</td>
+                    <td>@user.Email</td>
+                    <td>
+                        <button class="btn btn-info" @onclick="() => EditUser(user)">Edit</button>
+                        <button class="btn btn-danger" @onclick="() => DeleteUser(user.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No users available.</p>
+}
+
+@if (showAddEditForm)
+{
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">@((editingUser == null) ? "Add User" : "Edit User")</h5>
+            <form>
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" class="form-control" id="name" @bind="newUser.Name">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="text" class="form-control" id="email" @bind="newUser.Email">
+                </div>
+                <button type="button" class="btn btn-primary" @onclick="SaveUser">Save</button>
+                <button type="button" class="btn btn-secondary ml-2" @onclick="CancelAddEdit">Cancel</button>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    private List<User> users;
+    private bool showAddEditForm = false;
+    private User editingUser;
+    private User newUser = new User();
+
+    [Inject]
+    private IUserService userService { get; set; }
+
+    protected override void OnInitialized()
+    {
+        RefreshUsers();
+    }
+
+    private void RefreshUsers()
+    {
+        users = userService.GetUsers();
+    }
+
+    private void AddUser()
+    {
+        showAddEditForm = true;
+        editingUser = null;
+        newUser = new User();
+    }
+
+    private void EditUser(User user)
+    {
+        showAddEditForm = true;
+        editingUser = user;
+        newUser = new User
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email
+            };
+    }
+
+    private void DeleteUser(int userId)
+    {
+        userService.DeleteUser(userId);
+        RefreshUsers();
+    }
+
+    private void SaveUser()
+    {
+        if (string.IsNullOrWhiteSpace(newUser.Name) || string.IsNullOrWhiteSpace(newUser.Email))
+        {
+            // Show an alert or validation message if any of the required fields are empty
+            JSRuntime.InvokeVoidAsync("alert", "Please fill in all required fields.");
+        }
+        else
+        {
+            if (editingUser == null)
+            {
+                // Add new user
+                userService.AddUser(newUser);
+            }
+            else
+            {
+                // Edit existing user
+                userService.EditUser(newUser);
+            }
+
+            RefreshUsers(); // Refresh the list after adding/editing
+            showAddEditForm = false;
+        }
+    }
+
+    private void CancelAddEdit()
+    {
+        showAddEditForm = false;
+    }
+}

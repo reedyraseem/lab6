@@ -1,0 +1,65 @@
+﻿@page "/Returnbooks"
+@using BlazorApp7.Data
+@using BlazorApp7.Services
+@inject IJSRuntime JSRuntime
+@inject IUserService UserService
+@inject IBorrowService BorrowService
+@inject IBookService BookService
+
+<h3>Return a Book</h3>
+
+<div>
+    <label for="userName">Enter User Name to return a book for:</label>
+    <input type="text" id="userName" @bind="userName" />
+    <button @onclick="ReturnBook">Return Book</button>
+</div>
+
+<p>@resultMessage</p>
+
+@code {
+    private string userName;
+    private string resultMessage;
+
+    private void ReturnBook()
+    {
+        // Find the user by name
+        User user = UserService.GetUserByName(userName);
+
+        if (user != null)
+        {
+            // Check if the user has borrowed books
+            if (BorrowService.HasBorrowedBooks(user))
+            {
+                Console.WriteLine("Borrowed Books:");
+
+                for (int i = 0; i < BorrowService.GetBorrowedBooks(user).Count; i++)
+                {
+                    Console.WriteLine($"{i + 1}. {BorrowService.GetBorrowedBooks(user)[i].Title} by {BorrowService.GetBorrowedBooks(user)[i].Author} (ISBN: {BorrowService.GetBorrowedBooks(user)[i].ISBN})");
+                }
+
+                Console.Write("\nEnter the number of the book to return: ");
+
+                if (int.TryParse(Console.ReadLine(), out int bookNumber) && bookNumber >= 1 && bookNumber <= BorrowService.GetBorrowedBooks(user).Count)
+                {
+                    // Return the selected book
+                    Book bookToReturn = BorrowService.GetBorrowedBooks(user)[bookNumber - 1];
+                    BorrowService.ReturnBook(user, bookToReturn);
+
+                    resultMessage = "Book returned successfully!";
+                }
+                else
+                {
+                    resultMessage = "Invalid input!";
+                }
+            }
+            else
+            {
+                resultMessage = "User has no borrowed books!";
+            }
+        }
+        else
+        {
+            resultMessage = $"User with name '{userName}' not found.";
+        }
+    }
+}

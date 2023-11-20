@@ -1,0 +1,159 @@
+﻿@page "/Managebooks"
+@using BlazorApp7.Data
+@using BlazorApp7.Services
+@inject IJSRuntime JSRuntime
+<h3>Manage Books</h3>
+
+<div>
+    <button class="btn btn-primary" @onclick="AddBook">Add Book</button>
+</div>
+
+@if (books.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>ISBN</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var book in books)
+            {
+                <tr>
+                    <td>@book.Id</td>
+                    <td>@book.Title</td>
+                    <td>@book.Author</td>
+                    <td>@book.ISBN</td>
+                    <td>
+                        <button class="btn btn-info" @onclick="() => EditBook(book)">Edit</button>
+                        <button class="btn btn-danger" @onclick="() => ConfirmDeleteBook(book.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No books available.</p>
+}
+
+@if (showAddEditForm)
+{
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">@((editingBook == null) ? "Add Book" : "Edit Book")</h5>
+            <form>
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" class="form-control" id="title" @bind="newBook.Title">
+                </div>
+                <div class="form-group">
+                    <label for="author">Author</label>
+                    <input type="text" class="form-control" id="author" @bind="newBook.Author">
+                </div>
+                <div class="form-group">
+                    <label for="isbn">ISBN</label>
+                    <input type="text" class="form-control" id="isbn" @bind="newBook.ISBN">
+                </div>
+                <button type="button" class="btn btn-primary" @onclick="SaveBook">Save</button>
+                <button type="button" class="btn btn-secondary ml-2" @onclick="CancelAddEdit">Cancel</button>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Book> books;
+    private bool showAddEditForm = false;
+    private Book editingBook;
+    private Book newBook = new Book();
+   
+    [Inject]
+    private IBookService bookService { get; set; }
+
+    protected override void OnInitialized()
+    {
+        RefreshBooks();
+    }
+
+    private void RefreshBooks()
+    {
+        books = bookService.GetBooks();
+    }
+
+    private void AddBook()
+    {
+        showAddEditForm = true;
+        editingBook = null;
+        newBook = new Book();
+       
+
+    }
+
+    private void EditBook(Book book)
+    {
+        showAddEditForm = true;
+        editingBook = book;
+        newBook = new Book
+            {
+                Id = book.Id,
+                Title = book.Title,
+                Author = book.Author,
+                ISBN = book.ISBN
+            };
+            
+    }
+
+    private async Task SaveBook()
+    {
+        if (string.IsNullOrWhiteSpace(newBook.Title) || string.IsNullOrWhiteSpace(newBook.Author) || string.IsNullOrWhiteSpace(newBook.ISBN))
+        {
+            // Show an alert or validation message if any of the required fields are empty
+            await JSRuntime.InvokeVoidAsync("alert", "Please fill in all required fields.");
+        }
+        else
+        {
+            if (editingBook == null)
+            {
+                // Add new book
+                bookService.AddBook(newBook);
+                
+            }
+            else
+            {
+                // Edit existing book
+                bookService.EditBook(newBook);
+                
+            }
+
+            RefreshBooks(); // Refresh the list after adding/editing
+            showAddEditForm = false;
+        }
+    }
+
+  
+
+    private void DeleteBook(int bookId)
+    {
+        bookService.DeleteBook(bookId);
+       
+        RefreshBooks(); // Refresh the list after deletion
+    }
+
+    private void ConfirmDeleteBook(int bookId)
+    {
+        DeleteBook(bookId);
+    }
+
+
+    private void CancelAddEdit()
+    {
+        showAddEditForm = false;
+    }
+}
+
